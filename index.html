@@ -28,8 +28,8 @@
       <span class="chapter-name" id="chapter-name">D-Robotics Frontier</span>
     </p>
     <div class="topbar-actions">
-      <button class="tool-button" type="button" id="notes-button" hidden aria-label="Open speaker notes in a separate window (S)">
-        <span class="notes-glyph" aria-hidden="true"></span><span>Notes</span><kbd>S</kbd>
+      <button class="tool-button" type="button" id="notes-button" hidden aria-label="Open the presenter view in a separate window (S)">
+        <span class="notes-glyph" aria-hidden="true"></span><span>Presenter view</span><kbd>S</kbd>
       </button>
       <button class="tool-button" type="button" id="toc-button" aria-haspopup="dialog" aria-controls="toc-dialog" aria-expanded="false" aria-label="Contents (M)">
         <span class="toc-glyph" aria-hidden="true"><i></i><i></i><i></i></span><span>Contents</span><kbd>M</kbd>
@@ -174,23 +174,18 @@
       <p class="lede">Vision is necessary — but a PPO policy with the same depth input still fails</p>
     </header>
     <div class="body see-grid">
-      <div class="card see-step">
-        <p class="label">Step 1</p>
-        <h3>Give it eyes</h3>
-        <p>Blind policies feel for stairs with their feet — that can work well.</p>
-        <p class="warn">Between stepping stones there is nothing to probe: finding a gap means stepping into it.</p>
-        <p>WM-LOCO sees with <b class="ink" style="color:var(--night-text)">one head-mounted depth camera</b> — no offboard perception, no terrain map.</p>
+      <div class="zero-row">
+        <div class="zero"><p class="v">0%</p><p class="l">Stepping stones</p></div>
+        <div class="zero"><p class="v">0%</p><p class="l">Gaps</p></div>
+        <div class="zero"><p class="v">0%</p><p class="l">Balance beams</p></div>
+        <div class="zero"><p class="v dim">89.9%</p><p class="l">Stairs</p></div>
       </div>
-      <div class="see-right">
-        <div class="zero-row">
-          <div class="zero"><p class="v">0%</p><p class="l">Stepping stones</p></div>
-          <div class="zero"><p class="v">0%</p><p class="l">Gaps</p></div>
-          <div class="zero"><p class="v">0%</p><p class="l">Balance beams</p></div>
-          <div class="zero"><p class="v dim">89.9%</p><p class="l">Stairs</p></div>
-        </div>
-        <p class="cap">PPO baseline · mean success over Easy / Medium / Hard (Table I)</p>
-        <div class="duo">
-          <div class="card"><p class="label">Same as WM-LOCO</p><p style="margin-top:6px">Sensory inputs (incl. depth), rewards, proprioceptive encoder, motion prior, MoE backbone, training budget. <b style="color:var(--night-text)">Only the world model is missing.</b></p></div>
+      <p class="cap">PPO baseline · mean success over Easy / Medium / Hard (Table I)</p>
+      <div class="see-bottom">
+        <div class="vtile"><video data-autoplay="loop" muted loop playsinline preload="auto" poster="assets/video/v08_ppo_fail_many_poster.jpg" src="assets/video/v08_ppo_fail_many.mp4"></video><p class="vcap vcap--top"><span class="k">PPO baseline in simulation</span><em>a misstep ends the episode</em></p></div>
+        <div class="see-cards">
+          <div class="card"><p class="label">Why vision</p><p>Between stepping stones there is nothing to probe: finding a gap means stepping into it. WM-LOCO uses <b style="color:var(--night-text)">one head-mounted depth camera</b>, no offboard perception, no terrain map.</p></div>
+          <div class="card"><p class="label">Same as WM-LOCO</p><p>Inputs (incl. depth), rewards, encoder, motion prior, MoE backbone, training budget. <b style="color:var(--night-text)">Only the world model is missing.</b></p></div>
           <div data-punch class="card card--accent"><h3>Why? <span class="tag">our intuition</span></h3><p>Many precise steps in a row. Early on, the first misstep ends the episode, so a full crossing is almost never experienced.</p></div>
         </div>
       </div>
@@ -208,14 +203,18 @@
     </header>
     <div class="body field-grid">
       <table class="data-table field-table">
-        <thead><tr><th style="width:210px">Approach</th><th>Key idea</th><th style="width:190px">Extra machinery</th></tr></thead>
+        <thead><tr><th style="width:150px">Approach</th><th>Key idea</th><th style="width:150px">Extra machinery</th></tr></thead>
         <tbody>
-          <tr><td>BeamDojo <span class="muted" style="font-weight:400">RSS 2025</span></td><td>First walk on flat ground while seeing the sparse footholds — a miss costs reward, not a fall (an “invisible safety floor”); then the real terrain. Separate critics for dense and sparse foothold rewards.</td><td>Multi-stage training</td></tr>
-          <tr><td>RPL <span class="muted" style="font-weight:400">2026</span></td><td>Train privileged expert policies, distil them into a depth-based student.</td><td>Teacher–student</td></tr>
-          <tr><td>PLANC <span class="muted" style="font-weight:400">2026</span></td><td>Reduced-order physics references + multi-stage teacher–student distillation.</td><td>References + distillation</td></tr>
-          <tr><td>Footstep planning <span class="muted" style="font-weight:400">2026</span></td><td>Plan footsteps online with mixed-integer quadratic programming.</td><td>Online optimisation</td></tr>
+          <tr><td>BeamDojo<br><span class="muted" style="font-weight:400">RSS 2025</span></td><td>First walk on flat ground while seeing the sparse footholds: a miss costs reward, not a fall (an “invisible safety floor”); then the real terrain. Separate critics for dense and sparse foothold rewards.</td><td>Multi-stage training</td></tr>
+          <tr><td>RPL<br><span class="muted" style="font-weight:400">2026</span></td><td>Train privileged expert policies, distil them into a depth-based student.</td><td>Teacher–student</td></tr>
+          <tr><td>PLANC<br><span class="muted" style="font-weight:400">2026</span></td><td>Reduced-order physics references + multi-stage teacher–student distillation.</td><td>References + distillation</td></tr>
+          <tr><td>Footstep planning<br><span class="muted" style="font-weight:400">2026</span></td><td>Plan footsteps online with mixed-integer quadratic programming.</td><td>Online optimisation</td></tr>
         </tbody>
       </table>
+      <figure class="fig floor-fig">
+        <div class="vtile"><video data-autoplay="loop" muted loop playsinline preload="auto" poster="assets/video/v09_safety_floor_poster.jpg" src="assets/video/v09_safety_floor.mp4"></video><p class="vcap vcap--top"><span class="k">The “safety floor” idea</span></p></div>
+        <figcaption><span>Illustration</span>Our rendering of the idea, not BeamDojo's result: a floor level with the stone tops catches missed steps (orange).</figcaption>
+      </figure>
       <div data-punch class="card card--accent question">
         <p class="label">Our question</p>
         <p>Can one single-stage, end-to-end policy learn this — without extra stages, a teacher, foothold labels or an online planner?</p>
@@ -560,7 +559,7 @@
       <span class="foot-slash" aria-hidden="true">/</span>
       <span id="foot-title" class="foot-title">Demo</span>
     </p>
-    <p class="foot-hint" aria-hidden="true">← → page <span>·</span> Space play/pause <span>·</span> M contents <span>·</span> F full screen</p>
+    <p class="foot-hint" aria-hidden="true">← → page <span>·</span> Space play/pause <span>·</span> M contents <span>·</span> F full screen <span>·</span> H hide bars</p>
     <div class="foot-controls">
       <button class="nav-button" type="button" id="prev-button" aria-label="Previous slide"><span aria-hidden="true">←</span></button>
       <p class="page-counter" aria-live="polite"><span id="page-current">01</span><span class="counter-slash">/</span><span id="page-total">20</span></p>
@@ -578,7 +577,7 @@
   <div class="dialog-foot">
     <p>20 slides · 5 chapters · ~43 min</p>
     <div class="dialog-foot-actions">
-      <button class="notes-open" type="button" id="notes-open" hidden>Speaker notes</button>
+      <button class="notes-open" type="button" id="notes-open" hidden>Presenter view</button>
       <button class="print-button" type="button" id="print-button">Print / save PDF</button>
     </div>
   </div>

@@ -16,6 +16,7 @@ Open the link above in a desktop browser (Chrome or Edge recommended), or clone 
 | Space | play or pause the video on the slide |
 | M | list of all slides |
 | F | full screen |
+| H | hide the toolbars |
 
 The first slide is the demo video (2:12, with sound); click Play to start it. Figures with an *Enlarge* hint open full size on click.
 `WM-LOCO_webinar_slides.pdf` is a static copy of the slides.

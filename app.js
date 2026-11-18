@@ -25,9 +25,6 @@
 
   let current = 0;
   let isStage = stageQuery.matches;
-  let notesWin = null;
-  let timerStart = 0;
-  let timerHandle = 0;
 
   const pad = (n) => String(n).padStart(2, "0");
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -43,7 +40,7 @@
   function fit() {
     if (isStage) {
       const r = stage.getBoundingClientRect();
-      const full = document.documentElement.classList.contains("is-fullscreen");
+      const full = document.documentElement.classList.contains("is-fullscreen") || document.documentElement.classList.contains("is-clean");
       const px = full ? 0 : (r.width < 1300 ? 16 : 28);
       const py = full ? 0 : 12;
       const s = Math.min((r.width - px) / 1200, (r.height - py) / 675, full ? 4 : 1.8);
@@ -398,60 +395,169 @@
     });
   }
 
-  /* ---------------------------------------------------------------- speaker notes window */
-  const NOTES_CSS = `
-    body{margin:0;background:#12100e;color:#f3eee4;font:15px/1.6 -apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
-    header{position:sticky;top:0;display:flex;align-items:center;gap:14px;padding:12px 18px;background:#1b1713;border-bottom:1px solid rgba(242,238,229,.16)}
-    header b{font:700 22px/1 Menlo,Consolas,monospace;color:#f04e23}
-    header .t{font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    button{font:inherit;font-size:12px;color:#f3eee4;background:transparent;border:1px solid rgba(242,238,229,.25);padding:5px 10px;cursor:pointer}
-    button:hover{border-color:#f04e23;color:#ff8b62}
-    #clock{font:400 18px/1 Menlo,Consolas,monospace;color:#aca397;min-width:64px;text-align:right}
-    main{padding:16px 22px 30px}
-    pre{white-space:pre-wrap;font:inherit;margin:0}
-    .next{padding:10px 22px;border-top:1px solid rgba(242,238,229,.16);color:#aca397;font-size:13px}
-    .next b{color:#f3eee4}
-    .hint{color:#746c5e;font-size:11px;padding:0 22px 14px}
-    .big pre{font-size:19px}`;
-
+  /* ---------------------------------------------------------------- presenter view (separate window)
+     Share the main window; keep this one for yourself: current slide, next slide, notes, timers.
+     The window is an about:blank popup written from here, so it shares this page's origin and stylesheet. */
   const PUBLIC = document.documentElement.hasAttribute("data-public");
+  const PV_CSS = `
+    html,body{height:100%;overflow:hidden!important;margin:0}
+    body{background:#0d0b0a!important;color:#f3eee4;font:15px/1.6 -apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
+    .pv{height:100vh;display:grid;grid-template-rows:auto 1fr}
+    .pv-top{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1b1713;border-bottom:1px solid rgba(242,238,229,.14)}
+    .pv-n{font:700 22px/1 Menlo,Consolas,monospace;color:#f04e23}
+    .pv-title{flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pv-top button{font:12px/1 -apple-system,sans-serif;color:#f3eee4;background:transparent;border:1px solid rgba(242,238,229,.25);padding:6px 10px;cursor:pointer}
+    .pv-top button:hover{border-color:#f04e23;color:#ff8b62}
+    .pv-clock{display:flex;gap:14px;align-items:baseline;font:400 12px/1 Menlo,Consolas,monospace;color:#aca397}
+    .pv-clock b{font-size:20px;color:#f3eee4;font-weight:400}
+    .pv-clock .over b{color:#ff6a3d}
+    .pv-main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;padding:14px 16px;min-height:0}
+    .pv-left{display:grid;grid-template-rows:auto auto;gap:12px;align-content:start;min-height:0;overflow:hidden}
+    .pv-lab{font:400 10px/1 Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#aca397;margin:0 0 6px}
+    .pv-frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#000;outline:1px solid rgba(242,238,229,.16)}
+    .pv-frame.cur{outline:2px solid #f04e23}
+    .pv-next{width:52%;cursor:pointer}
+    .pv-canvas{position:absolute;left:0;top:0;width:1200px;height:675px;transform-origin:0 0}
+    .pv-canvas .slide{position:absolute!important;inset:0!important;display:block!important;width:1200px;height:675px}
+    .pv-end{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#746c5e;font-size:14px}
+    .pv-notes{min-height:0;overflow:auto;padding:4px 6px 30px 2px}
+    .pv-notes .cue{font:400 13px/1.5 Menlo,Consolas,monospace;color:#ffb393;white-space:pre-wrap;margin:0 0 12px}
+    .pv-notes .en,.pv-notes .zh,.pv-notes .other{white-space:pre-wrap;margin:0 0 4px;font-size:1em}
+    .pv-notes .zh{color:#e9dfd0;border-top:1px solid rgba(242,238,229,.14);padding-top:12px;margin-top:12px}
+    body.only-en .pv-notes .zh, body.only-zh .pv-notes .en{display:none}
+    body.only-zh .pv-notes .zh{border-top:0;padding-top:0;margin-top:0}
+    body.big .pv-notes{font-size:19px}
+    .pv-hint{font-size:11px;color:#746c5e;margin-top:10px}`;
+  let pvWin = null, pvTimer = 0, pvStart = 0, pvSlideStart = 0;
+
+  function cueSeconds(i) {
+    const m = notesOf(i).match(/^\[(\d+):(\d{2})\]/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+  }
+  function mirror(i) {
+    const s = slides[i].cloneNode(true);
+    s.removeAttribute("id");
+    s.classList.remove("is-animating");
+    s.classList.add("is-active");
+    s.removeAttribute("aria-hidden");
+    s.inert = true;
+    s.querySelectorAll(".notes").forEach((n) => n.remove());
+    s.querySelectorAll("[data-final]").forEach((n) => { n.textContent = n.dataset.final; });
+    s.querySelectorAll("video").forEach((v) => {
+      const img = document.createElement("img");
+      img.src = v.getAttribute("poster") || "";
+      img.style.cssText = `width:100%;height:100%;object-fit:${getComputedStyle(v).objectFit || "cover"};display:block`;
+      v.replaceWith(img);
+    });
+    s.querySelectorAll(".play-overlay").forEach((b) => b.remove());
+    return s;
+  }
   function openNotes() {
     if (PUBLIC) return;
-    if (notesWin && !notesWin.closed) { notesWin.focus(); renderNotes(); return; }
-    notesWin = window.open("", "wmloco-notes", "width=760,height=860");
-    if (!notesWin) return;
-    const d = notesWin.document;
+    if (pvWin && !pvWin.closed) { pvWin.focus(); renderNotes(); return; }
+    pvWin = window.open("", "wmloco-presenter", "width=1400,height=860");
+    if (!pvWin) return;
+    const d = pvWin.document;
     d.open();
-    d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Speaker notes · WM-LOCO</title><style>${NOTES_CSS}</style></head><body>
-      <header><b id="n"></b><span class="t" id="t"></span>
-      <button id="pv">←</button><button id="nx">→</button><button id="sz">A±</button><button id="rs" title="Reset timer">⟲</button><span id="clock">00:00</span></header>
-      <main><pre id="notes"></pre></main><p class="next">Next: <b id="nt"></b></p>
-      <p class="hint">← → / PageUp PageDown change slides in both windows · Space plays the slide video · timer starts on open</p></body></html>`);
+    d.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Presenter view · WM-LOCO</title>
+      <base href="${location.href.replace(/#.*$/, "")}"><link rel="stylesheet" href="styles.css"><style>${PV_CSS}</style></head><body>
+      <div class="pv">
+        <div class="pv-top"><span class="pv-n" id="pv-n"></span><span class="pv-title" id="pv-title"></span>
+          <span class="pv-clock"><span>talk <b id="pv-total">00:00</b></span><span id="pv-slide-box">slide <b id="pv-slide">0:00</b> <span id="pv-budget"></span></span><span>now <b id="pv-now"></b></span></span>
+          <button id="pv-prev">←</button><button id="pv-next-b">→</button><button id="pv-lang" title="EN + 中文 / EN / 中文">EN+中</button><button id="pv-size">A±</button><button id="pv-reset" title="Reset timers">⟲</button></div>
+        <div class="pv-main">
+          <div class="pv-left">
+            <div><p class="pv-lab">Now · the shared window shows this</p><div class="pv-frame cur" id="pv-cur"></div></div>
+            <div><p class="pv-lab">Next</p><div class="pv-frame pv-next" id="pv-nx"></div><p class="pv-hint">← → / PageUp PageDown / clicker work in both windows · Space plays the slide video · click "Next" to advance · H in the slide window hides its bars</p></div>
+          </div>
+          <div class="pv-notes" id="pv-notes"></div>
+        </div>
+      </div></body></html>`);
     d.close();
-    d.getElementById("pv").onclick = prev;
-    d.getElementById("nx").onclick = next;
-    d.getElementById("sz").onclick = () => d.body.classList.toggle("big");
-    d.getElementById("rs").onclick = () => { timerStart = Date.now(); tick(); };
+    d.getElementById("pv-prev").onclick = prev;
+    d.getElementById("pv-next-b").onclick = next;
+    d.getElementById("pv-nx").onclick = next;
+    d.getElementById("pv-size").onclick = () => d.body.classList.toggle("big");
+    d.getElementById("pv-reset").onclick = () => { pvStart = pvSlideStart = Date.now(); pvTick(); };
+    const modes = [["", "EN+中"], ["only-en", "EN"], ["only-zh", "中文"]];
+    let mode = 0;
+    d.getElementById("pv-lang").onclick = (e) => {
+      d.body.classList.remove("only-en", "only-zh");
+      mode = (mode + 1) % modes.length;
+      if (modes[mode][0]) d.body.classList.add(modes[mode][0]);
+      e.currentTarget.textContent = modes[mode][1];
+    };
     d.addEventListener("keydown", onKeydown, true);
-    timerStart = Date.now();
-    clearInterval(timerHandle);
-    timerHandle = setInterval(tick, 1000);
+    pvWin.addEventListener("resize", pvFit);
+    pvStart = pvSlideStart = Date.now();
+    clearInterval(pvTimer);
+    pvTimer = setInterval(pvTick, 500);
     renderNotes();
+    setTimeout(pvFit, 300);
   }
-  function tick() {
-    if (!notesWin || notesWin.closed) { clearInterval(timerHandle); return; }
-    const s = Math.floor((Date.now() - timerStart) / 1000);
-    notesWin.document.getElementById("clock").textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+  function pvFit() {
+    if (!pvWin || pvWin.closed) return;
+    pvWin.document.querySelectorAll(".pv-frame").forEach((f) => {
+      const c = f.querySelector(".pv-canvas");
+      if (c) c.style.transform = `scale(${(f.clientWidth / 1200).toFixed(4)})`;
+    });
+  }
+  function pvTick() {
+    if (!pvWin || pvWin.closed) { clearInterval(pvTimer); return; }
+    const d = pvWin.document;
+    if (!d.getElementById("pv-total")) return;
+    const fmt = (s) => `${Math.floor(s / 60)}:${pad(s % 60)}`;
+    const t = Math.floor((Date.now() - pvStart) / 1000);
+    const st = Math.floor((Date.now() - pvSlideStart) / 1000);
+    d.getElementById("pv-total").textContent = `${pad(Math.floor(t / 60))}:${pad(t % 60)}`;
+    d.getElementById("pv-slide").textContent = fmt(st);
+    const budget = cueSeconds(current);
+    d.getElementById("pv-budget").textContent = budget ? `/ ${fmt(budget)}` : "";
+    d.getElementById("pv-slide-box").classList.toggle("over", budget > 0 && st > budget);
+    const now = new Date();
+    d.getElementById("pv-now").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
   function renderNotes() {
-    if (!notesWin || notesWin.closed) return;
-    const d = notesWin.document;
-    if (!d.getElementById("notes")) return;
-    d.getElementById("n").textContent = `${pad(current + 1)}/${total}`;
-    d.getElementById("t").textContent = titleOf(current);
-    d.getElementById("notes").textContent = notesOf(current) || "(no notes)";
-    d.getElementById("nt").textContent = current < total - 1 ? titleOf(current + 1) : "— end —";
-    notesWin.scrollTo(0, 0);
+    if (!pvWin || pvWin.closed) return;
+    const d = pvWin.document;
+    if (!d.getElementById("pv-notes")) return;
+    pvSlideStart = Date.now();
+    d.getElementById("pv-n").textContent = `${pad(current + 1)}/${total}`;
+    d.getElementById("pv-title").textContent = titleOf(current);
+    const put = (id, i) => {
+      const f = d.getElementById(id);
+      f.replaceChildren();
+      if (i >= total) { const e = d.createElement("div"); e.className = "pv-end"; e.textContent = "End of deck"; f.appendChild(e); return; }
+      const c = d.createElement("div");
+      c.className = "pv-canvas";
+      c.appendChild(d.importNode(mirror(i), true));
+      f.appendChild(c);
+    };
+    put("pv-cur", current);
+    put("pv-nx", current + 1);
+    const box = d.getElementById("pv-notes");
+    box.replaceChildren();
+    const paras = [];
+    (notesOf(current) || "(no notes)").split(/\n\s*\n/).forEach((para) => {
+      const lines = para.split("\n");
+      const cue = [];
+      while (lines.length && /^\[/.test(lines[0])) cue.push(lines.shift());   // [m:ss] / [HOST …] cue lines
+      if (cue.length) paras.push(cue.join("\n"));
+      if (lines.length) paras.push(lines.join("\n"));
+    });
+    paras.forEach((para) => {
+      const p = d.createElement("p");
+      p.className = /^EN\b/.test(para) ? "en" : /^中文/.test(para) ? "zh" : /^\[/.test(para) ? "cue" : "other";
+      p.textContent = para.replace(/^(EN|中文)[^:：]*[:：]\s*/, "");
+      box.appendChild(p);
+    });
+    box.scrollTop = 0;
+    pvFit();
+    pvTick();
+  }
+  function toggleClean() {
+    document.documentElement.classList.toggle("is-clean");
+    requestAnimationFrame(fit);
   }
 
   /* ---------------------------------------------------------------- keys */
@@ -475,6 +581,7 @@
       case "m": case "M": e.preventDefault(); openToc(); break;
       case "f": case "F": e.preventDefault(); toggleFullscreen(); break;
       case "s": case "S": e.preventDefault(); openNotes(); break;
+      case "h": case "H": e.preventDefault(); toggleClean(); break;
       default: break;
     }
   }
@@ -529,7 +636,7 @@
     });
     document.querySelectorAll(".zoomable").forEach((b) => b.addEventListener("click", () => openLightbox(b)));
     document.addEventListener("visibilitychange", () => { if (document.hidden) pauseMedia(current); });
-    window.addEventListener("beforeunload", () => { if (notesWin && !notesWin.closed) notesWin.close(); });
+    window.addEventListener("beforeunload", () => { if (pvWin && !pvWin.closed) pvWin.close(); });
     if (!isStage) {
       // document mode: track the slide in view
       const io = new IntersectionObserver((entries) => {

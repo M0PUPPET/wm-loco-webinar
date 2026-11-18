@@ -206,7 +206,10 @@ kbd {
   .slide.is-active { display: block; }
 }
 /* fullscreen: hide chrome, slide fills the screen */
-html.is-fullscreen .topbar, html.is-fullscreen .bottombar { display: none; }
+html.is-fullscreen .topbar, html.is-fullscreen .bottombar,
+html.is-clean .topbar, html.is-clean .bottombar { display: none; }
+html.is-clean .stage { background: #000; }
+html.is-clean .deck-frame { border: 0; box-shadow: none; }
 html.is-fullscreen .stage { background: #000; }
 html.is-fullscreen .deck-frame { border: 0; box-shadow: none; }
 
@@ -521,14 +524,19 @@ h2 .hl { color: var(--orange); }
 .terrain-grid { grid-template-rows: auto 1fr; gap: 16px; }
 .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-.see-grid { grid-template-columns: 330px 1fr; gap: 22px; }
+.see-grid { grid-template-rows: auto auto 1fr; gap: 8px; }
+.see-bottom { display: grid; grid-template-columns: 1fr 452px; gap: 12px; min-height: 0; margin-top: 4px; }
+.see-cards { display: grid; grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0; }
+.see-cards .card { padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; }
+.see-cards .card p { font-size: 13px; line-height: 1.45; }
+.see-cards .card h3 { font-size: 15px; margin-bottom: 3px; }
+.see-cards .label { margin-bottom: 3px; }
 .see-right { display: grid; grid-template-rows: 1fr auto auto; gap: 10px; min-height: 0; }
-.see-step { display: flex; flex-direction: column; justify-content: center; }
 .zero-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.zero { border: 1px solid var(--night-line); background: rgba(242, 238, 229, 0.035); padding: 14px 10px 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-.zero .v { font-variant-numeric: tabular-nums; font-size: 66px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; color: var(--orange); }
-.zero .v.dim { color: var(--night-muted); font-size: 50px; line-height: 66px; }
-.zero .l { margin-top: 10px; font-size: 14.5px; font-weight: 700; color: var(--night-text); }
+.zero { border: 1px solid var(--night-line); background: rgba(242, 238, 229, 0.035); padding: 12px 10px 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.zero .v { font-variant-numeric: tabular-nums; font-size: 50px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; color: var(--orange); }
+.zero .v.dim { color: var(--night-muted); font-size: 40px; line-height: 50px; }
+.zero .l { margin-top: 6px; font-size: 13.5px; font-weight: 700; color: var(--night-text); }
 .see-right .cap { font: 400 9px/1.4 var(--mono); letter-spacing: 0.04em; color: var(--night-muted); }
 .see-step h3 { font-size: 20px; margin-bottom: 10px; }
 .see-step p { font-size: 15.5px; line-height: 1.6; }
@@ -536,9 +544,13 @@ h2 .hl { color: var(--orange); }
 .see-step p + p { margin-top: 10px; }
 .see-step .warn { color: #ff8b62; }
 
-.field-grid { grid-template-rows: 1fr auto; gap: 16px; }
+.field-grid { grid-template-columns: 1fr 410px; grid-template-rows: 1fr auto; gap: 14px 22px; }
+.field-grid .question { grid-column: 1 / -1; }
+.floor-fig .vtile { aspect-ratio: 16 / 9; }
+.floor-fig figcaption { font-size: 9.5px; line-height: 1.45; align-items: flex-start; }
+.field-table td { font-size: 12.5px; }
 .field-table td { font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; }
-.field-table td:last-child { font-family: var(--mono); font-size: 11.5px; color: var(--orange-deep); white-space: nowrap; }
+.field-table td:last-child { font-family: var(--mono); font-size: 11px; color: var(--orange-deep); }
 .question { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
 .question .label { flex: 0 0 auto; }
 .question p:not(.label) { font-size: 17px; line-height: 1.45; color: var(--ink); font-weight: 700; letter-spacing: -0.01em; }
@@ -642,6 +654,10 @@ h2 .hl { color: var(--orange); }
 .thanks-bottom .muted { font: 400 9.5px/1.6 var(--mono); letter-spacing: 0.06em; text-align: right; }
 .thanks-glow { position: absolute; inset: 0; z-index: 0; background: radial-gradient(900px 420px at 70% 120%, rgba(240, 78, 35, 0.42), transparent 70%), radial-gradient(600px 300px at 100% 0%, rgba(240, 78, 35, 0.12), transparent 70%); }
 
+
+/* small labels inside cards keep the label size (card body rules are more specific) */
+.card p.label, .see-cards .card p.label, .question p.label { font-size: 9px; line-height: 1.4; letter-spacing: 0.14em; }
+.see-grid > .cap { font: 400 9px/1.4 var(--mono); letter-spacing: 0.04em; color: var(--night-muted); }
 
 /* ==============================================================
    Motion system
