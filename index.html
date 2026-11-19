@@ -28,8 +28,8 @@
       <span class="chapter-name" id="chapter-name">D-Robotics Frontier</span>
     </p>
     <div class="topbar-actions">
-      <button class="tool-button" type="button" id="notes-button" hidden aria-label="Open the presenter view in a separate window (S)">
-        <span class="notes-glyph" aria-hidden="true"></span><span>Presenter view</span><kbd>S</kbd>
+      <button class="tool-button" type="button" id="notes-button" hidden aria-label="Present: the slides open in their own window to share, your notes float beside them (S)">
+        <span class="notes-glyph" aria-hidden="true"></span><span>Present</span><kbd>S</kbd>
       </button>
       <button class="tool-button" type="button" id="toc-button" aria-haspopup="dialog" aria-controls="toc-dialog" aria-expanded="false" aria-label="Contents (M)">
         <span class="toc-glyph" aria-hidden="true"><i></i><i></i><i></i></span><span>Contents</span><kbd>M</kbd>
@@ -41,7 +41,7 @@
     <div class="top-progress" aria-hidden="true"><span id="top-progress-fill"></span></div>
   </header>
 
-  <main class="stage" id="deck" aria-label="WM-LOCO webinar, 20 slides">
+  <main class="stage" id="deck" aria-label="WM-LOCO webinar, 19 slides">
     <div class="deck-frame" id="deck-frame">
       <div class="slides" id="slides">
 
@@ -103,7 +103,7 @@
       <p class="cover-who">Yuxi Liu<em>Robotics Algorithm Engineer, D-Robotics</em></p>
       <p class="cover-with">with Lijun Han, Ziming Wang, Ao Zhang, Cong Yang and Wei Sui</p>
     </div>
-    <p class="cover-foot"><span>D-Robotics</span><span class="cover-foot-rule"></span><span>20 slides · 5 chapters</span><span class="cover-foot-rule"></span><b>arxiv.org/abs/2609.02542</b></p>
+    <p class="cover-foot"><span>D-Robotics</span><span class="cover-foot-rule"></span><span>19 slides · 5 chapters</span><span class="cover-foot-rule"></span><b>arxiv.org/abs/2609.02542</b></p>
   </div>
 </section>
 
@@ -113,7 +113,7 @@
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">01 Results</span><span class="slash">/</span>Real robot</p>
       <h2>Zero-shot on a real humanoid</h2>
-      <p class="lede">Unitree G1 · one onboard depth camera + proprioception · no real-world training or tuning</p>
+      <p class="lede">Unitree G1 · onboard depth camera + proprioception · trained only in simulation</p>
     </header>
     <div class="body real-grid">
       <div class="tiles">
@@ -135,7 +135,6 @@
             <tr><td>Balance beam</td><td>0.10 m wide, 3 m long</td></tr>
           </tbody>
         </table>
-        <p class="foot-note">Policy runs onboard (Jetson Orin) with an Intel RealSense D435. Ten trials per terrain.</p>
       </div>
     </div>
   </div>
@@ -147,12 +146,12 @@
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">02 The problem</span><span class="slash">/</span>Terrain</p>
       <h2>Foothold-constrained terrain</h2>
-      <p class="lede">Sparse, discontinuous or narrow support — a single misplaced step can cause a fall</p>
+      <p class="lede">Sparse, discontinuous or narrow support: one misplaced step can cause a fall</p>
     </header>
     <div class="body terrain-grid">
       <div class="duo">
-        <div class="card"><h3>Continuous terrain</h3><p>Dense support. A foot a few centimetres off is corrected within the same step or the next one.</p></div>
-        <div class="card card--accent"><h3>Foothold-constrained terrain</h3><p>Gaps, stepping stones, narrow stair treads, balance beams. A foot outside the support can directly cause a fall.</p></div>
+        <div class="card"><h3>Continuous terrain</h3><p>Dense support. A foot a few centimetres off is corrected on the next step.</p></div>
+        <div class="card card--accent"><h3>Foothold-constrained terrain</h3><p>Stairs, stones, gaps, beams. A foot outside the support means a fall.</p></div>
       </div>
       <figure class="fig">
         <button class="zoomable" type="button" data-caption="Fig. 1 · Simulated combined course: stair ascent, stepping stones, gap, narrow beam, stair descent">
@@ -171,7 +170,7 @@
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">02 The problem</span><span class="slash">/</span>Perception vs learning</p>
       <h2>Seeing is not enough</h2>
-      <p class="lede">Vision is necessary — but a PPO policy with the same depth input still fails</p>
+      <p class="lede">PPO with the same depth input still fails on stones, gaps and beams</p>
     </header>
     <div class="body see-grid">
       <div class="zero-row">
@@ -184,9 +183,9 @@
       <div class="see-bottom">
         <div class="vtile"><video data-autoplay="loop" muted loop playsinline preload="auto" poster="assets/video/v08_ppo_fail_many_poster.jpg" src="assets/video/v08_ppo_fail_many.mp4"></video><p class="vcap vcap--top"><span class="k">PPO baseline in simulation</span><em>a misstep ends the episode</em></p></div>
         <div class="see-cards">
-          <div class="card"><p class="label">Why vision</p><p>Between stepping stones there is nothing to probe: finding a gap means stepping into it. WM-LOCO uses <b style="color:var(--night-text)">one head-mounted depth camera</b>, no offboard perception, no terrain map.</p></div>
-          <div class="card"><p class="label">Same as WM-LOCO</p><p>Inputs (incl. depth), rewards, encoder, motion prior, MoE backbone, training budget. <b style="color:var(--night-text)">Only the world model is missing.</b></p></div>
-          <div data-punch class="card card--accent"><h3>Why? <span class="tag">our intuition</span></h3><p>Many precise steps in a row. Early on, the first misstep ends the episode, so a full crossing is almost never experienced.</p></div>
+          <div class="card"><p class="label">Why vision</p><p>Between stones there is nothing to probe with the foot. Input: <b style="color:var(--night-text)">one head-mounted depth camera</b>, no terrain map.</p></div>
+          <div class="card"><p class="label">Same as WM-LOCO</p><p>Inputs, rewards, backbone, budget. <b style="color:var(--night-text)">Only the world model is missing.</b></p></div>
+          <div data-punch class="card card--accent"><h3>Why? <span class="tag">our intuition</span></h3><p>The first misstep ends the episode, so a full crossing is almost never seen.</p></div>
         </div>
       </div>
     </div>
@@ -199,16 +198,15 @@
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">02 The problem</span><span class="slash">/</span>Related work</p>
       <h2>How the field copes today</h2>
-      <p class="lede">Strong results — paid for with extra machinery</p>
+      <p class="lede">Each adds a stage, a teacher or a planner</p>
     </header>
     <div class="body field-grid">
       <table class="data-table field-table">
         <thead><tr><th style="width:150px">Approach</th><th>Key idea</th><th style="width:150px">Extra machinery</th></tr></thead>
         <tbody>
-          <tr><td>BeamDojo<br><span class="muted" style="font-weight:400">RSS 2025</span></td><td>First walk on flat ground while seeing the sparse footholds: a miss costs reward, not a fall (an “invisible safety floor”); then the real terrain. Separate critics for dense and sparse foothold rewards.</td><td>Multi-stage training</td></tr>
-          <tr><td>RPL<br><span class="muted" style="font-weight:400">2026</span></td><td>Train privileged expert policies, distil them into a depth-based student.</td><td>Teacher–student</td></tr>
-          <tr><td>PLANC<br><span class="muted" style="font-weight:400">2026</span></td><td>Reduced-order physics references + multi-stage teacher–student distillation.</td><td>References + distillation</td></tr>
-          <tr><td>Footstep planning<br><span class="muted" style="font-weight:400">2026</span></td><td>Plan footsteps online with mixed-integer quadratic programming.</td><td>Online optimisation</td></tr>
+          <tr><td>BeamDojo<br><span class="muted" style="font-weight:400">RSS 2025</span></td><td>Train on flat ground with the footholds shown (“safety floor”), then on the real terrain.</td><td>Multi-stage training</td></tr>
+          <tr><td>RPL · PLANC<br><span class="muted" style="font-weight:400">2026</span></td><td>Privileged experts distilled into a depth-based student.</td><td>Teacher–student</td></tr>
+          <tr><td>Footstep planning<br><span class="muted" style="font-weight:400">2026</span></td><td>Plan footsteps online (mixed-integer QP).</td><td>Online optimisation</td></tr>
         </tbody>
       </table>
       <figure class="fig floor-fig">
@@ -217,7 +215,7 @@
       </figure>
       <div data-punch class="card card--accent question">
         <p class="label">Our question</p>
-        <p>Can one single-stage, end-to-end policy learn this — without extra stages, a teacher, foothold labels or an online planner?</p>
+        <p>Can one single-stage, end-to-end policy learn this without them?</p>
       </div>
     </div>
   </div>
@@ -242,9 +240,9 @@
       <div class="fw-side">
         <div class="card card--accent"><p><b class="accent">World model:</b> learn what happens next if I take this action.</p></div>
         <ol class="num-list">
-          <li><span class="n">01</span><div><b>RSSM world model</b><span class="t">learns action-conditioned dynamics from depth + proprioception</span></div></li>
-          <li><span class="n">02</span><div><b>Predictive context</b><span class="t">its memory <span class="math">h<sub>t</sub></span> becomes a policy feature; depth reaches the policy only this way</span></div></li>
-          <li><span class="n">03</span><div><b>One stage</b><span class="t">PPO and world model train jointly; no world-model pretraining</span></div></li>
+          <li><span class="n">01</span><div><b>RSSM world model</b><span class="t">action-conditioned dynamics from depth + proprioception</span></div></li>
+          <li><span class="n">02</span><div><b>Predictive context</b><span class="t">memory <span class="math">h<sub>t</sub></span> → policy feature; the only path for depth</span></div></li>
+          <li><span class="n">03</span><div><b>One stage</b><span class="t">trained jointly, no pretraining</span></div></li>
         </ol>
       </div>
     </div>
@@ -271,14 +269,14 @@
         <div class="card">
           <h3>Training loss</h3>
           <ul class="dot-list">
-            <li>reconstruct proprioception (symlog) and depth</li>
+            <li>reconstruct proprioception and depth</li>
             <li>predict the task reward</li>
-            <li>KL: prior → posterior (β = 0.5), posterior → prior (β = 0.1), free bits 1</li>
+            <li>KL between prior and posterior</li>
           </ul>
         </div>
         <div data-punch class="card card--accent">
           <h3>Why it learns to predict</h3>
-          <p>The prior never sees the current frame. Matching it to the posterior forces the dynamics to predict what body and camera will report next.</p>
+          <p>The prior never sees the current frame, so matching the posterior forces the dynamics to predict the next observation.</p>
         </div>
       </div>
     </div>
@@ -291,16 +289,15 @@
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">03 Method</span><span class="slash">/</span>Policy &amp; training</p>
       <h2>Policy and training</h2>
-      <p class="lede">Predictive context in, actions out — one stage, no rollouts at run time</p>
+      <p class="lede">Predictive feature in, actions out</p>
     </header>
     <div class="body pol-grid">
       <ul class="dot-list">
-        <li><b>Policy input:</b> proprioception, its last 5 control steps, velocity command and <span class="math">f<sup>WM</sup> = g<sub>ψ</sub>(h<sub>t</sub>)</span></li>
-        <li><b class="accent">Depth enters the policy only through the world model</b></li>
-        <li><b>Two clocks:</b> policy 50 Hz, world model 10 Hz; the feature is held between updates</li>
-        <li><b>MoE backbone + adversarial motion prior</b> (the PPO baseline has both)</li>
-        <li><b>At deployment:</b> actions come straight from the actor — no model rollout, no action search</li>
-        <li><b>Training:</b> <span class="math">L<sub>PPO</sub> + L<sub>WM</sub></span> on the same on-policy data; no world-model pretraining, no teacher, no planner, no per-step foothold targets</li>
+        <li><b>Policy input:</b> proprioception, last 5 control steps, command, <span class="math">f<sup>WM</sup> = g<sub>ψ</sub>(h<sub>t</sub>)</span></li>
+        <li><b class="accent">Depth enters only through the world model</b></li>
+        <li><b>Rates:</b> policy 50 Hz, world model 10 Hz</li>
+        <li><b>Training:</b> <span class="math">L<sub>PPO</sub> + L<sub>WM</sub></span> on the same on-policy data; one stage, no teacher, no planner</li>
+        <li><b>Deployment:</b> actor outputs actions directly; no rollout, no search</li>
       </ul>
       <div class="pol-side">
         <div class="card">
@@ -314,7 +311,7 @@
             </tbody>
           </table>
         </div>
-        <div data-punch class="card card--accent"><h3>Honest note</h3><p>These terrain-aware rewards (Table III) reward valid support and penalise invalid contact — they never say where each foot should go.</p></div>
+        <p class="foot-note">Terrain-aware rewards (Table III) mark valid support; they do not set foot targets.</p>
       </div>
     </div>
   </div>
@@ -347,9 +344,8 @@
         </table>
       </div>
       <div class="res-side">
-        <div class="card"><p class="stat-num">94.8%</p><p class="stat-label">four-terrain mean (GLAD 71.5%, CReF 77.6%)</p></div>
-        <div class="card"><p class="stat-num">&gt; 90%</p><p class="stat-label">on every terrain class — the only method</p></div>
-        <div class="card"><p class="stat-num sm">Hard tier</p><p class="stat-label">stones 96.4% (GLAD 7.7%) · beam 80.7% (CReF 41.1%) · 2 m gaps 90.0% (CReF 0%)</p></div>
+        <div class="card"><p class="stat-num">94.8%</p><p class="stat-label">four-terrain mean (GLAD 71.5%, CReF 77.6%); the only method above 90% on every class</p></div>
+                <div class="card"><p class="stat-num sm">Hard tier</p><p class="stat-label">stones 96.4% (GLAD 7.7%) · 2 m gaps 90.0% (CReF 0%)</p></div>
       </div>
     </div>
   </div>
@@ -373,37 +369,8 @@
   </div>
 </section>
 
-<!-- 14 · ablation -->
-<section class="slide slide--paper" id="slide-14" data-chapter="4" data-title="Ablation: the world model is essential">
-  <div class="slide-inner">
-    <header class="slide-head reveal">
-      <p class="eyebrow"><span class="eyebrow-index">04 Evidence</span><span class="slash">/</span>Fig. 5</p>
-      <h2>Ablation: the world model is essential</h2>
-      <p class="lede">Gap traversal across gap widths (Fig. 5)</p>
-    </header>
-    <div class="body abl-grid">
-      <figure class="fig">
-        <button class="zoomable" type="button" data-caption="Fig. 5 · Gap traversal success vs gap width: full model, w/o world model, w/o history encoder, w/o MoE">
-          <img src="assets/fig/fig_05_ablation.png" alt="Line chart: success rate against gap width for the full model and three ablations">
-          <span class="zoom-hint"><span>+</span>Enlarge</span>
-        </button>
-        <figcaption><span>Fig. 5</span>Success rate vs gap width</figcaption>
-      </figure>
-      <div>
-        <ol class="num-list">
-          <li><span class="n">✓</span><div><b>Full model</b><span class="t">98.6–99.6% at every tested width</span></div></li>
-          <li><span class="n">✕</span><div><b class="accent">Without the world model</b><span class="t">0% from the 0.4–0.5 m range onward</span></div></li>
-          <li><span class="n">✕</span><div><b>Without MoE</b><span class="t">near-total failure beyond the smallest range</span></div></li>
-          <li><span class="n">–</span><div><b>Without the history encoder</b><span class="t">mainly wider gaps suffer</span></div></li>
-        </ol>
-        <div data-punch class="card card--accent" style="margin-top:16px"><p style="color:var(--ink);font-weight:700">MoE and history help the policy use the world model's context.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 15 · gait -->
-<section class="slide slide--paper" id="slide-15" data-chapter="4" data-title="Not just success: a better gait">
+<!-- 14 · gait -->
+<section class="slide slide--paper" id="slide-14" data-chapter="4" data-title="Not just success: a better gait">
   <div class="slide-inner">
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">04 Evidence</span><span class="slash">/</span>Table IV</p>
@@ -414,25 +381,23 @@
       <div class="gait-side">
         <div class="card"><p class="stat-num">+25.6%</p><p class="stat-label">stride length</p></div>
         <div class="card"><p class="stat-num">−28.9%</p><p class="stat-label">pelvis acceleration</p></div>
-        <p class="foot-note">Mean relative change across tiers. Steps per metre and normalized mechanical energy also drop at every tier.</p>
+        <p class="foot-note">Mean change across Easy / Medium / Hard.</p>
       </div>
       <table class="data-table">
         <thead><tr><th>Metric <span style="letter-spacing:0.04em">(Easy / Medium / Hard)</span></th><th>PPO</th><th>WM-LOCO</th></tr></thead>
         <tbody>
           <tr><td>Stride length ↑ (m)</td><td class="mono">0.45 / 0.42 / 0.40</td><td class="mono win">0.52 / 0.53 / 0.54</td></tr>
           <tr><td>Steps per metre ↓</td><td class="mono">4.91 / 5.04 / 5.15</td><td class="mono win">4.45 / 4.26 / 4.07</td></tr>
-          <tr><td>Normalized mechanical energy ↓</td><td class="mono">1.01 / 1.21 / 1.43</td><td class="mono win">0.95 / 1.01 / 1.14</td></tr>
           <tr><td>Pelvis acceleration ↓ (m/s²)</td><td class="mono">6.96 / 8.26 / 9.89</td><td class="mono win">5.28 / 5.85 / 6.58</td></tr>
           <tr><td>Action rate ↓</td><td class="mono">3.94 / 6.19 / 8.14</td><td class="mono win">2.61 / 2.88 / 3.32</td></tr>
-          <tr><td>Torque / limit</td><td class="mono">0.56 / 0.62 / 0.67</td><td class="mono">0.59 / 0.63 / 0.66</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </section>
 
-<!-- 16 · WM open-loop video -->
-<section class="slide slide--night" id="slide-16" data-chapter="4" data-title="Can the world model predict the future?">
+<!-- 15 · WM open-loop video -->
+<section class="slide slide--night" id="slide-15" data-chapter="4" data-title="Can the world model predict the future?">
   <div class="slide-inner">
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">04 Evidence</span><span class="slash">/</span>Open-loop prediction</p>
@@ -447,22 +412,21 @@
       <div>
         <p class="label">Protocol</p>
         <ul class="dot-list" style="margin-top:6px">
-          <li>Initialise from depth + proprioception</li>
-          <li>Feed the recorded actions; predict 15 updates (1.5 s) ahead</li>
-          <li>Compare with Isaac Lab measurements</li>
+          <li>Start from one observation</li>
+          <li>Feed the recorded actions, no new observations</li>
+          <li>Predict 1.5 s ahead</li>
         </ul>
-        <p class="foot-note" style="margin-top:14px">Left: ground truth · middle: prediction · right: error</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 17 · Fig. 3 -->
-<section class="slide slide--paper" id="slide-17" data-chapter="4" data-title="It predicts — and the actions matter">
+<!-- 16 · Fig. 3 -->
+<section class="slide slide--paper" id="slide-16" data-chapter="4" data-title="It predicts, and the actions matter">
   <div class="slide-inner">
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">04 Evidence</span><span class="slash">/</span>Fig. 3</p>
-      <h2>It predicts — and the actions matter</h2>
+      <h2>It predicts, and the actions matter</h2>
       <p class="lede">Stepping stones, 1.5-s horizon, four conditions (Fig. 3)</p>
     </header>
     <div class="body f3-grid">
@@ -479,45 +443,36 @@
       <div class="f3-side">
         <img class="f3-legend" src="assets/fig/fig03_legend.png" alt="Legend: predict with actual actions, predict with other actions, repeat initial observation, posterior reconstruction">
         <ul class="dot-list">
-          <li><b>Depth:</b> actual actions beat repeating the first frame and beat other actions over the whole 1.5 s</li>
-          <li><b>Joints at 1.5 s:</b> position and velocity errors stay close to the reconstruction reference (Fig. 3c)</li>
+          <li><b>Depth:</b> actual actions beat both other actions and a frozen first frame over 1.5 s</li>
           <li><b>Reward at 1.0 s:</b> MAE 0.072, correlation 0.887</li>
         </ul>
-        <div data-punch class="card card--accent" style="margin-top:auto"><h3>Predictive context, not a planner</h3><p>No perfect foresight of arbitrary actions, no rendering of the future while walking, no action search.</p></div>
+        <div data-punch class="card card--accent" style="margin-top:auto"><h3>Predictive context, not a planner</h3><p>Nothing is rendered or searched while walking.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 18 · takeaways -->
-<section class="slide slide--paper" id="slide-18" data-chapter="5" data-title="Takeaways and limitations">
+<!-- 17 · takeaways -->
+<section class="slide slide--paper" id="slide-17" data-chapter="5" data-title="Takeaways">
   <div class="slide-inner">
     <header class="slide-head reveal">
       <p class="eyebrow"><span class="eyebrow-index">05 Wrap-up</span><span class="slash">/</span>Summary</p>
-      <h2>Takeaways and limitations</h2>
-      <p class="lede">What WM-LOCO shows — and what it does not yet</p>
+      <h2>Takeaways</h2>
+      <p class="lede">What WM-LOCO shows</p>
     </header>
     <div class="body take-grid">
       <ol class="num-list take-list">
-        <li><span class="n">01</span><div><b>Seeing is necessary, not sufficient</b><span class="t">With the same depth input, a strong PPO policy still fails on stones, gaps and beams.</span></div></li>
-        <li><span class="n">02</span><div><b>Predict, then act</b><span class="t">A jointly trained world model turns depth + proprioception into predictive context — one stage, no teacher, no planner.</span></div></li>
-        <li><span class="n">03</span><div><b>It transfers</b><span class="t">94.8% mean success in simulation; 92.5% zero-shot on a real Unitree G1.</span></div></li>
+        <li><span class="n">01</span><div><b>Seeing is necessary, not sufficient</b><span class="t">Same depth input, PPO still fails on stones, gaps, beams.</span></div></li>
+        <li><span class="n">02</span><div><b>Predict, then act</b><span class="t">A jointly trained world model gives the policy predictive context; one stage.</span></div></li>
+        <li><span class="n">03</span><div><b>It transfers</b><span class="t">94.8% in simulation, 92.5% zero-shot on a real G1.</span></div></li>
       </ol>
-      <div class="card">
-        <h3>Limitations</h3>
-        <ul class="dot-list">
-          <li>Evaluated on discrete footholds and narrow support; varying-height stones and outdoor terrain not yet evaluated</li>
-          <li>Unitree G1 only</li>
-          <li>Relies on depth — next: stereo RGB, toward locomotion and manipulation</li>
-        </ul>
-      </div>
       <p data-punch class="card card--accent closing">Teaching robots not only how to act, but what their actions lead to.</p>
     </div>
   </div>
 </section>
 
-<!-- 19 · community -->
-<section class="slide slide--paper" id="slide-19" data-chapter="5" data-title="Join the D-Robotics community">
+<!-- 18 · community -->
+<section class="slide slide--paper" id="slide-18" data-chapter="5" data-title="Join the D-Robotics community">
   <img class="brand-mark" src="assets/media/d-robotics-logo.png" alt="" aria-hidden="true">
   <div class="slide-inner community" style="justify-content:center">
     <p class="eyebrow reveal" style="justify-content:center"><span class="eyebrow-index">Community</span><span class="slash">/</span>Stay in touch</p>
@@ -532,8 +487,8 @@
   </div>
 </section>
 
-<!-- 20 · thanks -->
-<section class="slide slide--night" id="slide-20" data-chapter="5" data-title="Thank you · Q&amp;A">
+<!-- 19 · thanks -->
+<section class="slide slide--night" id="slide-19" data-chapter="5" data-title="Thank you · Q&amp;A">
   <span class="thanks-glow" aria-hidden="true"></span>
   <div class="slide-inner" style="padding:40px 52px 34px">
     <p class="eyebrow"><span class="signal-dot"></span>D-Robotics Frontier #02</p>
@@ -568,16 +523,24 @@
   </footer>
 </div>
 
+<div class="handoff-note" role="status">
+  <p class="eyebrow"><span class="signal-dot"></span>Presenting</p>
+  <h2>The slides are now in their own window: “WM-LOCO · Slides”.</h2>
+  <p>In that window press S: your notes float beside the slides, on top of everything, and are never part of a window share. Then in Feishu choose 共享 → 窗口 → “WM-LOCO · Slides”. This tab can stay in the background.</p>
+  <p class="zh">幻灯片已在单独窗口打开（标题 “WM-LOCO · Slides”）。在那个窗口里按 S，讲稿会浮在幻灯片旁边、始终置顶，而且不会被窗口共享带出去。然后在飞书里选 共享 → 窗口 → “WM-LOCO · Slides”。本页留在后台即可。</p>
+  <button type="button" id="handoff-back">Back to this window</button>
+</div>
+
 <dialog class="toc-dialog" id="toc-dialog" aria-labelledby="toc-dialog-title">
   <div class="dialog-head">
-    <div><p class="eyebrow">Contents<span class="slash">/</span>20 slides</p><h2 id="toc-dialog-title">Contents</h2></div>
+    <div><p class="eyebrow">Contents<span class="slash">/</span>19 slides</p><h2 id="toc-dialog-title">Contents</h2></div>
     <button class="close-button" type="button" id="toc-close" aria-label="Close contents">Close <span aria-hidden="true">×</span></button>
   </div>
   <nav class="dialog-nav" id="dialog-nav" aria-label="All slides"></nav>
   <div class="dialog-foot">
-    <p>20 slides · 5 chapters · ~43 min</p>
+    <p>19 slides · 5 chapters · ~45 min with Q&amp;A</p>
     <div class="dialog-foot-actions">
-      <button class="notes-open" type="button" id="notes-open" hidden>Presenter view</button>
+      <button class="notes-open" type="button" id="notes-open" hidden>Present with notes</button>
       <button class="print-button" type="button" id="print-button">Print / save PDF</button>
     </div>
   </div>

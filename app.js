@@ -217,7 +217,7 @@
     $("top-progress-fill").style.transform = `scaleX(${(current + 1) / total})`;
     prevButton.disabled = current === 0;
     nextButton.disabled = current === total - 1;
-    document.title = `${titleOf(current)} · WM-LOCO · D-Robotics Frontier #02`;
+    document.title = (!SLIDES_WINDOW && document.documentElement.classList.contains("is-handed-off")) ? "WM-LOCO · background tab (do not share)" : "WM-LOCO · Slides";
     dialogNav.querySelectorAll(".dialog-link").forEach((a) => {
       const on = Number(a.dataset.goto) - 1 === current;
       a.classList.toggle("is-current", on);
@@ -238,7 +238,7 @@
   function goTo(index, { push = true, scroll = true } = {}) {
     const target = clamp(index, 0, total - 1);
     const previous = current;
-    if (target !== current) { pauseMedia(current); slides[current].classList.remove("is-animating"); }
+    if (target !== current) { pauseMedia(current); slides[current].classList.remove("is-animating"); hideFloatHint(); }
     current = target;
     syncSlides();
     updateChrome();
@@ -395,10 +395,26 @@
     });
   }
 
-  /* ---------------------------------------------------------------- presenter view (separate window)
-     Share the main window; keep this one for yourself: current slide, next slide, notes, timers.
-     The window is an about:blank popup written from here, so it shares this page's origin and stylesheet. */
+  /* ---------------------------------------------------------------- presenter notes
+     Present the way PowerPoint does on one screen: the slides window stays in front and is the one shared;
+     the notes float above it in a Document Picture-in-Picture window (Chrome / Edge 116+). A PiP window is
+     always on top, belongs to no tab and is never part of a window share, so nothing has to be arranged and
+     the shared window is never covered (a fully covered Chrome window stops drawing, which freezes the share).
+     Browsers without Document PiP fall back to the old presenter popup (current + next slide, notes, timers). */
   const PUBLIC = document.documentElement.hasAttribute("data-public");
+  const CAN_FLOAT = "documentPictureInPicture" in window;
+  const FLOAT_CSS = `
+    .pv--float{grid-template-rows:auto auto minmax(0,1fr) auto}
+    .pv--float .pv-top{padding:8px 12px;gap:8px}
+    .pv--float .pv-clock{gap:12px;flex-wrap:wrap}
+    .pv--float .pv-clock b{font-size:17px}
+    .pv-bar{display:flex;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid rgba(242,238,229,.1)}
+    .pv-bar .pv-title{flex:1;font-size:14px}
+    .pv--float .pv-notes{padding:12px 14px 28px}
+    .pv-foot{display:flex;gap:12px;align-items:center;padding:9px 12px;background:#1b1713;border-top:1px solid rgba(242,238,229,.14)}
+    .pv-foot .pv-next{width:150px;flex:none}
+    .pv-foot .pv-lab{margin-bottom:4px}
+    .pv-nt{min-width:0;font-size:13px;line-height:1.4;color:#d9d0c2}`;
   const PV_CSS = `
     html,body{height:100%;overflow:hidden!important;margin:0}
     body{background:#0d0b0a!important;color:#f3eee4;font:15px/1.6 -apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
@@ -406,8 +422,8 @@
     .pv-top{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#1b1713;border-bottom:1px solid rgba(242,238,229,.14)}
     .pv-n{font:700 22px/1 Menlo,Consolas,monospace;color:#f04e23}
     .pv-title{flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .pv-top button{font:12px/1 -apple-system,sans-serif;color:#f3eee4;background:transparent;border:1px solid rgba(242,238,229,.25);padding:6px 10px;cursor:pointer}
-    .pv-top button:hover{border-color:#f04e23;color:#ff8b62}
+    .pv button{font:12px/1 -apple-system,sans-serif;color:#f3eee4;background:transparent;border:1px solid rgba(242,238,229,.25);padding:6px 10px;cursor:pointer}
+    .pv button:hover{border-color:#f04e23;color:#ff8b62}
     .pv-clock{display:flex;gap:14px;align-items:baseline;font:400 12px/1 Menlo,Consolas,monospace;color:#aca397}
     .pv-clock b{font-size:20px;color:#f3eee4;font-weight:400}
     .pv-clock .over b{color:#ff6a3d}
@@ -452,14 +468,67 @@
     s.querySelectorAll(".play-overlay").forEach((b) => b.remove());
     return s;
   }
+  /* Screen split used by the slides window and the floating notes: slides on the left, notes column on the right. */
+  function screenSplit() {
+    const aw = screen.availWidth || 1440, ah = screen.availHeight || 900;
+    const nw = Math.round(Math.min(460, Math.max(340, aw * 0.27)));
+    return { aw, ah, nw, x: screen.availLeft || 0, y: screen.availTop || 0, sw: aw >= 1100 ? aw - nw - 8 : aw };
+  }
+  /* S: in the original tab it starts the slides window (the one to share); inside the slides window it floats the notes. */
+  function present() {
+    if (PUBLIC) return;
+    if (!SLIDES_WINDOW) {
+      if (slidesWin && !slidesWin.closed) { slidesWin.focus(); return; }   // already presenting: go back to it
+      if (openSlidesWindow()) return;                                         // popup blocked: notes for this tab
+    }
+    openNotes();
+  }
   function openNotes() {
     if (PUBLIC) return;
+    hideFloatHint();
     if (pvWin && !pvWin.closed) { pvWin.focus(); renderNotes(); return; }
+    if (CAN_FLOAT) { openFloatingNotes(); return; }
+    openNotesWindow();
+  }
+  async function openFloatingNotes() {
+    const g = screenSplit();
+    let w;
+    try {
+      w = await window.documentPictureInPicture.requestWindow({ width: g.nw, height: Math.min(g.ah - 40, 980) });
+    } catch (err) {
+      console.warn("floating notes unavailable, using the presenter window", err);
+      openNotesWindow();
+      return;
+    }
+    pvWin = w;
+    const d = w.document;
+    d.title = "WM-LOCO · Notes (private)";
+    const css = d.createElement("link");
+    css.rel = "stylesheet";
+    css.href = new URL("styles.css", location.href).href;
+    const st = d.createElement("style");
+    st.textContent = PV_CSS + FLOAT_CSS;
+    d.head.append(css, st);
+    d.body.innerHTML = `
+      <div class="pv pv--float">
+        <div class="pv-top"><span class="pv-n" id="pv-n"></span>
+          <span class="pv-clock"><span>talk <b id="pv-total">00:00</b></span><span id="pv-slide-box">slide <b id="pv-slide">0:00</b> <span id="pv-budget"></span></span><span>now <b id="pv-now"></b></span></span></div>
+        <div class="pv-bar"><span class="pv-title" id="pv-title"></span>
+          <button id="pv-prev" title="Previous">←</button><button id="pv-next-b" title="Next">→</button><button id="pv-lang" title="EN + 中文 / EN / 中文">EN+中</button><button id="pv-size" title="Text size">A±</button><button id="pv-reset" title="Reset timers">⟲</button></div>
+        <div class="pv-notes" id="pv-notes"></div>
+        <div class="pv-foot"><div class="pv-frame pv-next" id="pv-nx" title="Next slide (click to advance)"></div>
+          <div class="pv-nt"><p class="pv-lab">Next</p><span id="pv-nexttitle"></span></div></div>
+      </div>`;
+    wirePresenter(d);
+    w.addEventListener("pagehide", () => { if (pvWin === w) { pvWin = null; clearInterval(pvTimer); } });
+    setTimeout(() => window.focus(), 80);       // keep the slides window the active one; keys work in both anyway
+  }
+  function openNotesWindow() {
     pvWin = window.open("", "wmloco-presenter", "width=1400,height=860");
     if (!pvWin) return;
     const d = pvWin.document;
     d.open();
-    d.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Presenter view · WM-LOCO</title>
+    d.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>WM-LOCO · Presenter view (private)</title>
       <base href="${location.href.replace(/#.*$/, "")}"><link rel="stylesheet" href="styles.css"><style>${PV_CSS}</style></head><body>
       <div class="pv">
         <div class="pv-top"><span class="pv-n" id="pv-n"></span><span class="pv-title" id="pv-title"></span>
@@ -474,6 +543,9 @@
         </div>
       </div></body></html>`);
     d.close();
+    wirePresenter(d);
+  }
+  function wirePresenter(d) {
     d.getElementById("pv-prev").onclick = prev;
     d.getElementById("pv-next-b").onclick = next;
     d.getElementById("pv-nx").onclick = next;
@@ -533,8 +605,10 @@
       c.appendChild(d.importNode(mirror(i), true));
       f.appendChild(c);
     };
-    put("pv-cur", current);
+    if (d.getElementById("pv-cur")) put("pv-cur", current);
     put("pv-nx", current + 1);
+    const nt = d.getElementById("pv-nexttitle");
+    if (nt) nt.textContent = current + 1 < total ? `${pad(current + 2)} · ${titleOf(current + 1)}` : "End of deck";
     const box = d.getElementById("pv-notes");
     box.replaceChildren();
     const paras = [];
@@ -555,6 +629,34 @@
     pvFit();
     pvTick();
   }
+  /* A separate, chrome-less window that holds only the slides: the one to pick in Feishu / Zoom / Teams.
+     It opens on the left of the screen and leaves a column on the right for the floating notes.
+     It is a full copy of the deck (same file, ?slides), so S inside it floats the notes for it. */
+  const SLIDES_WINDOW = new URLSearchParams(location.search).has("slides");
+  let slidesWin = null;
+  function openSlidesWindow() {
+    if (SLIDES_WINDOW) return false;
+    const g = screenSplit();
+    const url = `${location.href.replace(/[?#].*$/, "")}?slides#slide-${pad(current + 1)}`;
+    const w = window.open(url, "wmloco-slides", `popup,left=${g.x},top=${g.y},width=${g.sw},height=${g.ah}`);
+    if (!w) return false;
+    slidesWin = w;
+    pauseMedia(current);
+    document.documentElement.classList.add("is-handed-off");
+    updateChrome();
+    return true;
+  }
+  /* One-line prompt in a fresh slides window, gone as soon as the notes open or the talk starts. */
+  let floatHint = null;
+  function showFloatHint() {
+    if (PUBLIC) return;
+    floatHint = document.createElement("div");
+    floatHint.className = "float-hint";
+    floatHint.innerHTML = "<kbd>S</kbd><span>Press S to float your notes</span><small>按 S 打开悬浮讲稿 · 只有你看得到</small>";
+    document.body.appendChild(floatHint);
+    setTimeout(hideFloatHint, 25000);
+  }
+  function hideFloatHint() { if (floatHint) { floatHint.remove(); floatHint = null; } }
   function toggleClean() {
     document.documentElement.classList.toggle("is-clean");
     requestAnimationFrame(fit);
@@ -580,8 +682,9 @@
         break;
       case "m": case "M": e.preventDefault(); openToc(); break;
       case "f": case "F": e.preventDefault(); toggleFullscreen(); break;
-      case "s": case "S": e.preventDefault(); openNotes(); break;
+      case "s": case "S": e.preventDefault(); present(); break;
       case "h": case "H": e.preventDefault(); toggleClean(); break;
+      case "w": case "W": e.preventDefault(); openSlidesWindow(); break;
       default: break;
     }
   }
@@ -613,6 +716,7 @@
     syncSlides();
     updateChrome();
     fit();
+    if (SLIDES_WINDOW) document.documentElement.classList.add("is-clean", "is-slides-window");
     enter(current, true);
     if (isStage) activateMedia(current);
 
@@ -627,15 +731,25 @@
     $("lightbox-close").addEventListener("click", () => lightbox.close());
     $("fullscreen-button").addEventListener("click", toggleFullscreen);
     if (!document.fullscreenEnabled) $("fullscreen-button").hidden = true;
-    $("notes-button").addEventListener("click", openNotes);
-    $("notes-open").addEventListener("click", () => { tocDialog.close(); openNotes(); });
+    $("notes-button").addEventListener("click", present);
+    const sw = $("slides-window-button"); if (sw) sw.addEventListener("click", openSlidesWindow);
+    const back = $("handoff-back"); if (back) back.addEventListener("click", () => { document.documentElement.classList.remove("is-handed-off"); updateChrome(); });
+    $("notes-open").addEventListener("click", () => { tocDialog.close(); present(); });
     $("print-button").addEventListener("click", () => { tocDialog.close(); setTimeout(() => window.print(), 80); });
     document.querySelectorAll("[data-goto]").forEach((a) => {
       if (a.classList.contains("dialog-link")) return;
       a.addEventListener("click", (e) => { e.preventDefault(); goTo(Number(a.dataset.goto) - 1); });
     });
     document.querySelectorAll(".zoomable").forEach((b) => b.addEventListener("click", () => openLightbox(b)));
-    document.addEventListener("visibilitychange", () => { if (document.hidden) pauseMedia(current); });
+    // A background tab pauses its clips and resumes them when shown again. The slides window never pauses
+    // itself: it is the shared window, and covering it for a moment must not stop the demo for the audience.
+    let pausedByHide = [];
+    document.addEventListener("visibilitychange", () => {
+      if (SLIDES_WINDOW) return;
+      if (document.hidden) { pausedByHide = slideVideos(current).filter((v) => !v.paused); pausedByHide.forEach((v) => v.pause()); }
+      else if (!document.documentElement.classList.contains("is-handed-off")) { pausedByHide.forEach((v) => v.play().catch(() => {})); pausedByHide = []; }
+    });
+    if (SLIDES_WINDOW) showFloatHint();
     window.addEventListener("beforeunload", () => { if (pvWin && !pvWin.closed) pvWin.close(); });
     if (!isStage) {
       // document mode: track the slide in view
